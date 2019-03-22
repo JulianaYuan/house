@@ -1,6 +1,7 @@
 package com.juliana.house.activity;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -9,15 +10,21 @@ import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.Gallery;
 import android.widget.Spinner;
+import android.widget.Toast;
 
 import com.juliana.house.R;
+import com.juliana.house.adapter.ImageAdapter;
 import com.juliana.house.db.HousesDB;
 import com.juliana.house.model.House;
 
@@ -28,6 +35,8 @@ public class HouseDetailActivity extends BaseActivity implements View.OnClickLis
     private Button switchHouseBtn;
     private Button saveEditBtn;
     private Button calTaxBtn;
+
+    private Gallery houseGallery;
 
     private EditText districtEdit;
     private EditText describeEdit;
@@ -67,6 +76,7 @@ public class HouseDetailActivity extends BaseActivity implements View.OnClickLis
     private boolean m_isNewHouse = true;
     private House m_house = null;
     private HousesDB m_housesDB;
+    private ImageAdapter m_ImgAdapter = null;			// 声明图片资源对象
 
 
     @Override
@@ -78,6 +88,7 @@ public class HouseDetailActivity extends BaseActivity implements View.OnClickLis
         switchHouseBtn = (Button)findViewById(R.id.switch_house);
         saveEditBtn = (Button)findViewById(R.id.save_edit);
         calTaxBtn = (Button)findViewById(R.id.cal_tax);
+        houseGallery = (Gallery)findViewById(R.id.gallery);
         districtEdit = (EditText)findViewById(R.id.district_edit);
         describeEdit = (EditText)findViewById(R.id.describe_edit);
         areaEdit = (EditText)findViewById(R.id.area_edit);
@@ -124,42 +135,22 @@ public class HouseDetailActivity extends BaseActivity implements View.OnClickLis
         switchHouseBtn.setOnClickListener(this);
         saveEditBtn.setOnClickListener(this);
         calTaxBtn.setOnClickListener(this);
-        over5yearSpin.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (position == 1)
-                {
-                    over2yearSpin.setSelection(1);
-                    over2yearSpin.setEnabled(false);
-                }else{
-                    over2yearSpin.setEnabled(true);
-                }
-            }
+        m_ImgAdapter = new ImageAdapter(this);
+        houseGallery.setAdapter(m_ImgAdapter);
+        houseGallery.setGravity(Gravity.CENTER_HORIZONTAL);		// 设置水平居中显示
+        ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams) houseGallery.getLayoutParams();
+        WindowManager wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+        int width = wm.getDefaultDisplay().getWidth();
+        layoutParams.setMargins(-width*2/3, 0, 0, 0);
+        //houseGallery.setSelection(m_ImgAdapter.imgs.length * 100);		// 设置起始图片显示位置（可以用来制作gallery循环显示效果）
 
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-
-            }
-        });
-        firstSellSpin.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (position == 1)
-                {
-                    buyingPriceEdit.setEnabled(false);
-                }else{
-                    if (m_isEditing) {
-                        Log.i("mainActivity","HouseDetailActivity m_isEditing ");
-                        buyingPriceEdit.setEnabled(true);
-                    }
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-
-            }
-        });
+        houseGallery.setOnItemClickListener(clickListener); 			// 设置点击图片的监听事件（需要用手点击才触发，滑动时不触发）
+        houseGallery.setOnItemSelectedListener(selectedListener);		// 设置选中图片的监听事件（当图片滑到屏幕正中，则视为自动选中）
+        houseGallery.setUnselectedAlpha(0.3f);					// 设置未选中图片的透明度
+        houseGallery.setSpacing(5);							// 设置图片之间的间距
+        //houseGallery.setOnClickListener(this);
+        over5yearSpin.setOnItemSelectedListener(selectedListener);
+        firstSellSpin.setOnItemSelectedListener(selectedListener);
         evadeTaxCheck.setOnClickListener(this);
         firstBuyCheck.setOnClickListener(this);
         int houseId = getIntent().getIntExtra("house_id",0);
@@ -230,6 +221,51 @@ public class HouseDetailActivity extends BaseActivity implements View.OnClickLis
                 break;
         }
     }
+    // 点击图片的监听事件
+    AdapterView.OnItemClickListener clickListener = new AdapterView.OnItemClickListener() {
+        @Override
+        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            Toast.makeText(HouseDetailActivity.this, "点击图片 " + (position + 1), 100).show();
+        }
+    };
+
+    // 选中监听事件
+    AdapterView.OnItemSelectedListener selectedListener = new AdapterView.OnItemSelectedListener() {
+        @Override
+        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            switch (view.getId()){
+                case R.id.gallery:
+                    Toast.makeText(HouseDetailActivity.this, "选中图片 " + (position + 1), 20).show();
+                    break;
+                case R.id.over5year_spin:
+                    if (position == 1)
+                    {
+                        over2yearSpin.setSelection(1);
+                        over2yearSpin.setEnabled(false);
+                    }else{
+                        over2yearSpin.setEnabled(true);
+                    }
+                    break;
+                case R.id.first_sell_spin:
+                    if (position == 1)
+                    {
+                        buyingPriceEdit.setEnabled(false);
+                    }else{
+                        if (m_isEditing) {
+                            Log.i("mainActivity","HouseDetailActivity m_isEditing ");
+                            buyingPriceEdit.setEnabled(true);
+                        }
+                    }
+                    break;
+            }
+        }
+
+        @Override
+        public void onNothingSelected(AdapterView<?> arg0) {
+
+        }
+    };
+
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     @Override
     public void onBackPressed(){

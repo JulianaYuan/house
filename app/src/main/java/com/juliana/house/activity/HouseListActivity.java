@@ -152,26 +152,6 @@ public class HouseListActivity extends BaseActivity implements View.OnClickListe
             dataList.clear();
             for (House house:houseList){
                 dataList.add(house.getTimeStamp()+":"+house.getDistrictName()+ " " + house.getDescribe());
-                Log.i("mainActivity","queryHouses getId: "+house.getId());
-                Log.i("mainActivity","queryHouses getTimeStamp: "+house.getTimeStamp());
-                Log.i("mainActivity","queryHouses getDistrictName: "+house.getDistrictName());
-                Log.i("mainActivity","queryHouses getArea: "+house.getArea());
-                Log.i("mainActivity","queryHouses getQuotedPrice: "+house.getQuotedPrice());
-                Log.i("mainActivity","queryHouses getRealPrice: "+house.getRealPrice());
-                Log.i("mainActivity","queryHouses getBuyingPrice: "+house.getBuyingPrice());
-                Log.i("mainActivity","queryHouses getTotalFloors: "+house.getTotalFloors());
-                Log.i("mainActivity","queryHouses getRealFloor: "+house.getRealFloor());
-                Log.i("mainActivity","queryHouses getLocationType: "+house.getLocationType());
-                Log.i("mainActivity","queryHouses getIsFirstSell: "+house.getIsFirstSell());
-                Log.i("mainActivity","queryHouses getIsNormalHouse: "+house.getIsNormalHouse());
-                Log.i("mainActivity","queryHouses getIsOver5years: "+house.getIsOver5years());
-                Log.i("mainActivity","queryHouses getIsOnlyHouse: "+house.getIsOnlyHouse());
-                Log.i("mainActivity","queryHouses getIsOver2years: "+house.getIsOver2years());
-                Log.i("mainActivity","queryHouses getDeedTaxRate: "+house.getDeedTaxRate());
-                Log.i("mainActivity","queryHouses getValueAddedTaxRate: "+house.getValueAddedTaxRate());
-                Log.i("mainActivity","queryHouses getIncomeTaxRate: "+house.getIncomeTaxRate());
-                Log.i("mainActivity","queryHouses getAgencyFeeRate: "+house.getAgencyFeeRate());
-                Log.i("mainActivity","queryHouses getOtherHandlingFee: "+house.getOtherHandlingFee());
             }
             adapter.notifyDataSetChanged();
             listView.setSelection(0);
