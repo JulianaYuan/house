@@ -3,6 +3,9 @@ package com.juliana.house.activity;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.RequiresApi;
@@ -20,23 +23,36 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Gallery;
+import android.widget.GridView;
 import android.widget.Spinner;
 import android.widget.Toast;
 
 import com.juliana.house.R;
 import com.juliana.house.adapter.ImageAdapter;
 import com.juliana.house.db.HousesDB;
+import com.juliana.house.model.EventMessage;
 import com.juliana.house.model.House;
+import com.juliana.house.util.BitmapUtils;
+import com.juliana.house.util.ImageFactory;
+import com.juliana.house.util.TakePhotoUtils;
+import com.juliana.house.util.WindowManagerUtils;
+import com.nanchen.compresshelper.CompressHelper;
 
+import org.greenrobot.eventbus.EventBus;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class HouseDetailActivity extends BaseActivity implements View.OnClickListener{
+public class HouseDetailActivity extends HouseBaseActivity implements View.OnClickListener{
     private Button switchHouseBtn;
     private Button saveEditBtn;
     private Button calTaxBtn;
 
-    private Gallery houseGallery;
+    //private Gallery houseGallery;
 
     private EditText districtEdit;
     private EditText describeEdit;
@@ -71,6 +87,7 @@ public class HouseDetailActivity extends BaseActivity implements View.OnClickLis
     private EditText agencyFeeEdit;
     private EditText downPaymentEdit;
     private EditText firstPayEdit;
+    private GridView photoGrid;
 
     private boolean m_isEditing = true;
     private boolean m_isNewHouse = true;
@@ -78,6 +95,14 @@ public class HouseDetailActivity extends BaseActivity implements View.OnClickLis
     private HousesDB m_housesDB;
     private ImageAdapter m_ImgAdapter = null;			// 声明图片资源对象
 
+    private TakePhotoUtils m_takePhotoUtil = null;
+    private List<Bitmap> imgList = new ArrayList<Bitmap>();
+    private List<Bitmap> origalImgList = new ArrayList<Bitmap>();
+    private Bitmap zoomImageBitmap;
+    private Uri origalUri;
+    private File file;
+    private File newFile;
+    private int width;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,7 +113,7 @@ public class HouseDetailActivity extends BaseActivity implements View.OnClickLis
         switchHouseBtn = (Button)findViewById(R.id.switch_house);
         saveEditBtn = (Button)findViewById(R.id.save_edit);
         calTaxBtn = (Button)findViewById(R.id.cal_tax);
-        houseGallery = (Gallery)findViewById(R.id.gallery);
+        //houseGallery = (Gallery)findViewById(R.id.gallery);
         districtEdit = (EditText)findViewById(R.id.district_edit);
         describeEdit = (EditText)findViewById(R.id.describe_edit);
         areaEdit = (EditText)findViewById(R.id.area_edit);
@@ -130,25 +155,22 @@ public class HouseDetailActivity extends BaseActivity implements View.OnClickLis
         downPaymentEdit.setEnabled(false);
         firstPayEdit = (EditText)findViewById(R.id.first_pay_edit);
         firstPayEdit.setEnabled(false);
+        photoGrid = (GridView)findViewById(R.id.gv_photo);
 
-        m_housesDB = HousesDB.getInstance(this);
+
+        m_housesDB = getHousesDB();
         switchHouseBtn.setOnClickListener(this);
         saveEditBtn.setOnClickListener(this);
         calTaxBtn.setOnClickListener(this);
-        m_ImgAdapter = new ImageAdapter(this);
-        houseGallery.setAdapter(m_ImgAdapter);
-        houseGallery.setGravity(Gravity.CENTER_HORIZONTAL);		// 设置水平居中显示
-        ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams) houseGallery.getLayoutParams();
-        WindowManager wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-        int width = wm.getDefaultDisplay().getWidth();
-        layoutParams.setMargins(-width*2/3, 0, 0, 0);
-        //houseGallery.setSelection(m_ImgAdapter.imgs.length * 100);		// 设置起始图片显示位置（可以用来制作gallery循环显示效果）
+        m_ImgAdapter = new ImageAdapter(this,imgList);
 
-        houseGallery.setOnItemClickListener(clickListener); 			// 设置点击图片的监听事件（需要用手点击才触发，滑动时不触发）
-        houseGallery.setOnItemSelectedListener(selectedListener);		// 设置选中图片的监听事件（当图片滑到屏幕正中，则视为自动选中）
-        houseGallery.setUnselectedAlpha(0.3f);					// 设置未选中图片的透明度
-        houseGallery.setSpacing(5);							// 设置图片之间的间距
-        //houseGallery.setOnClickListener(this);
+        m_ImgAdapter.setOnDelItemPhotoClickListener(delItemPhotoClickListener);
+        m_ImgAdapter.setOnPhotoClickListener(photoClickListener);
+
+        photoGrid.setAdapter(m_ImgAdapter);
+        int screenWidth = WindowManagerUtils.getScreenWidth(this);
+        width = screenWidth/3;
+        photoGrid.setOnItemClickListener(clickListener);
         over5yearSpin.setOnItemSelectedListener(selectedListener);
         firstSellSpin.setOnItemSelectedListener(selectedListener);
         evadeTaxCheck.setOnClickListener(this);
@@ -170,6 +192,8 @@ public class HouseDetailActivity extends BaseActivity implements View.OnClickLis
             m_isEditing = true;
         }
         updateWidgetState(m_isEditing);
+
+        m_takePhotoUtil = TakePhotoUtils.getInstance();
     }
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     @Override
@@ -225,18 +249,131 @@ public class HouseDetailActivity extends BaseActivity implements View.OnClickLis
     AdapterView.OnItemClickListener clickListener = new AdapterView.OnItemClickListener() {
         @Override
         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-            Toast.makeText(HouseDetailActivity.this, "点击图片 " + (position + 1), 100).show();
+            if (position == imgList.size()){
+                TakePhotoUtils.getInstance().pickPhoto(parent.getContext());
+            }else{
+                //进入图片预览页面
+                Log.i("mainActivity","HouseDetailActivity onItemClick 进入图片预览页面");
+                EventBus.getDefault().postSticky(new EventMessage(1,origalImgList));
+                Intent intent = new Intent(parent.getContext(), ShowImageActivity.class);
+                intent.putExtra("id", position);   //将当前点击的位置传递过去
+                parent.getContext().startActivity(intent);     //启动Activity
+            }
+            Log.i("mainActivity","HouseDetailActivity onItemClick");
+            Toast.makeText(HouseDetailActivity.this, "点击图片 " + (position + 1), Toast.LENGTH_LONG).show();
         }
     };
 
+    ImageAdapter.OnDelItemPhotoClickListener delItemPhotoClickListener =
+            new ImageAdapter.OnDelItemPhotoClickListener() {
+                @Override
+                public void onDelItemPhotoClick(int position) {
+                    Log.i("mainActivity","HouseDetailActivity onDelItemPhotoClick "+position);
+                    if (imgList != null && imgList.size() > 0){
+                        imgList.remove(position);
+                        m_ImgAdapter.notifyDataSetChanged();
+                    }
+
+                    if (origalImgList != null && origalImgList.size() > 0){
+                        origalImgList.remove(position);
+                    }
+
+                }
+            };
+    ImageAdapter.OnPhotoClickListener photoClickListener =
+            new ImageAdapter.OnPhotoClickListener() {
+                @Override
+                public void onPhotoClick(int position) {
+                    Log.i("mainActivity","HouseDetailActivity onPhotoClick "+position);
+                    if (position == imgList.size()){
+                        TakePhotoUtils.getInstance().pickPhoto(photoGrid.getContext());
+                    }else{
+                        //进入图片预览页面
+                        Log.i("mainActivity","HouseDetailActivity onItemClick 进入图片预览页面");
+                        EventBus.getDefault().postSticky(new EventMessage(1,origalImgList));
+                        Intent intent = new Intent(photoGrid.getContext(), ShowImageActivity.class);
+                        intent.putExtra("id", position);   //将当前点击的位置传递过去
+                        photoGrid.getContext().startActivity(intent);     //启动Activity
+                    }
+                }
+            };
+
+    @Override
+    public void onActivityResult(int pRequestCode, int pResultCode, Intent pData){
+        Uri uri;
+        if (pResultCode == Activity.RESULT_OK) {
+            switch (pRequestCode) {
+                // 从相册取
+                case TakePhotoUtils.CHOOSE_PICTURE:
+                    origalUri = pData.getData();
+                    file = BitmapUtils.getFileFromMediaUri(getApplicationContext(), origalUri);
+                    newFile = CompressHelper.getDefault(getApplicationContext()).compressToFile(file);
+                    Bitmap photoBmp = null;
+                    try {
+                        //                        photoBmp = BitmapUtils.getBitmapFormUri(UserFeedbackActivity.this, Uri.fromFile(file));
+                        photoBmp = BitmapFactory.decodeFile(newFile.getAbsolutePath());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    int degree = BitmapUtils.getBitmapDegree(newFile.getAbsolutePath());
+
+                    /**
+                     * 把图片旋转为正的方向
+                     */
+                    Bitmap newbitmap = BitmapUtils.rotateBitmapByDegree(photoBmp, degree);
+
+
+
+                    origalImgList.add(newbitmap);
+
+                    zoomImage(newbitmap,width,width);
+                    //                    TakePhotoUtils.getInstance().cropImageUri(context, origalUri, width, width, TakePhotoUtils.CROP_BIG_PICTURE);
+                    break;
+
+                case TakePhotoUtils.CROP_BIG_PICTURE:
+                    // 剪大图用uri
+                    if (TakePhotoUtils.getInstance().mImageFile != null) {
+                        Bitmap bitmap = TakePhotoUtils.getInstance().decodeUriAsBitmap(getApplicationContext(), Uri.fromFile
+                                (TakePhotoUtils.getInstance().mImageFile));
+
+                        Bitmap image = ImageFactory.ratio(bitmap, width, width);
+                        if (image != null) {
+                            // spath:生成图片取个名字和路径包含类型
+                            String fileName = "image" + System.currentTimeMillis()
+                                    + ".png";
+                            String outPath = getApplicationContext().getFilesDir().getAbsolutePath() + fileName;
+                            try {
+                                ImageFactory.compressAndGenImage(image, outPath, 140);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            File file = new File(outPath);
+                            imgList.add(image);
+
+                            m_ImgAdapter.notifyDataSetChanged();
+                        }
+                    }
+                    break;
+            }
+        }
+        super.onActivityResult(pRequestCode, pResultCode, pData);
+    }
+    /**
+     * 缩放图片
+     * @param bitmap
+     * @param width
+     * @param height
+     */
+    private void zoomImage(Bitmap bitmap,int width,int height){
+        zoomImageBitmap = BitmapUtils.zoomBitmap(bitmap, width, height);
+        imgList.add(zoomImageBitmap);
+        m_ImgAdapter.notifyDataSetChanged();
+    }
     // 选中监听事件
     AdapterView.OnItemSelectedListener selectedListener = new AdapterView.OnItemSelectedListener() {
         @Override
         public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-            switch (view.getId()){
-                case R.id.gallery:
-                    Toast.makeText(HouseDetailActivity.this, "选中图片 " + (position + 1), 20).show();
-                    break;
+            switch (parent.getId()){
                 case R.id.over5year_spin:
                     if (position == 1)
                     {

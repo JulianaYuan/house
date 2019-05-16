@@ -1,1 +1,5 @@
 include ':app'
+include ':EventBus'
+include ':EventBusAnnotationProcessor'
+project(":EventBus").name = "eventbus"
+project(":EventBusAnnotationProcessor").name = "eventbus-annotation-processor"

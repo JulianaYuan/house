@@ -21,7 +21,7 @@ import com.juliana.house.model.House;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TaxLoanActivity extends BaseActivity implements View.OnClickListener {
+public class TaxLoanActivity extends HouseBaseActivity implements View.OnClickListener {
     Button backHouse;
     Button refreshLoan;
 
@@ -74,7 +74,7 @@ public class TaxLoanActivity extends BaseActivity implements View.OnClickListene
         stagesSpin = (Spinner)findViewById(R.id.stages_spin);
         stagesSpin.setSelection(19);
 
-        m_housesDB = HousesDB.getInstance(this);
+        m_housesDB = getHousesDB();
         backHouse.setOnClickListener(this);
         refreshLoan.setOnClickListener(this);
         loanSelectRatio.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {

@@ -95,12 +95,27 @@
                     android:layout_marginLeft="2dp"
                     android:layout_marginTop="2dp"
                     android:text="户型图："/>
-                <Gallery
-                    android:id="@+id/gallery"
+                <HorizontalScrollView
+                    android:id="@+id/horizontal_scrollview"
+                    android:layout_height="0dp"
                     android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="5dp">
-                </Gallery>
+                    android:layout_weight="1"
+                    android:layout_gravity="center"
+                    android:background="@android:color/darker_gray"
+                    android:scrollbars="none">
+                    <LinearLayout
+                        android:layout_height="match_parent"
+                        android:layout_width="match_parent"
+                        android:orientation="horizontal">
+                        <GridView
+                            android:id="@+id/gv_photo"
+                            android:layout_marginTop="3dp"
+                            android:numColumns="@string/maxImageNum"
+                            android:horizontalSpacing="3dp"
+                            android:layout_width="3100dp"
+                            android:layout_height="158dp" />
+                    </LinearLayout>
+                </HorizontalScrollView>
             </LinearLayout>
             <LinearLayout
                 android:id="@+id/house1_layout"

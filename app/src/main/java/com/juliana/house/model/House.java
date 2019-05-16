@@ -40,7 +40,7 @@ public class House {
 
     public House(){
         id = 0;
-        timeStamp = getTimeStamp();
+        timeStamp = new String("2019-01-01 00:00");
         districtName = new String("null");
 
         area = new Float(0);

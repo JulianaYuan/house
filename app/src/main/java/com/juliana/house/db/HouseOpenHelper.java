@@ -4,6 +4,7 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.media.Image;
+import android.util.Log;
 
 public class HouseOpenHelper extends SQLiteOpenHelper{
     /**
@@ -44,10 +45,14 @@ public class HouseOpenHelper extends SQLiteOpenHelper{
 
     @Override
     public void onUpgrade(SQLiteDatabase db,int oldVersion,int newVersion){
+        Log.i("mainActivity","oldVersion: "+oldVersion+"newVersion: "+newVersion);
         switch (oldVersion){
             case 1:
+                Log.i("mainActivity","oldVersion: "+oldVersion+"newVersion: "+newVersion);
                 String sql = "Alter table House add column time_stamp TEXT ";
                 db.execSQL(sql);
+            case 2:
+                Log.i("mainActivity","oldVersion: "+oldVersion+"newVersion: "+newVersion);
             default:
         }
 

@@ -27,13 +27,14 @@ import com.juliana.house.model.House;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HouseListActivity extends BaseActivity implements View.OnClickListener{
+public class HouseListActivity extends HouseBaseActivity implements View.OnClickListener{
 
     private Button createHouseBtn;
     private ListView listView;
     private ArrayAdapter<String> adapter;
     private HousesDB m_housesDB;
     private List<String> dataList = new ArrayList<String>();
+    private int m_lastSelection = 0;
 
     /**
      *house list
@@ -51,12 +52,13 @@ public class HouseListActivity extends BaseActivity implements View.OnClickListe
 
         adapter = new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1,dataList);
         listView.setAdapter(adapter);
-        m_housesDB = HousesDB.getInstance(this);
+        m_housesDB = getHousesDB();
         queryHouses();
         createHouseBtn.setOnClickListener(this);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                m_lastSelection = i;
                 int houseId = houseList.get(i).getId();
                 Intent intent = new Intent(HouseListActivity.this,HouseDetailActivity.class);
                 Log.i("mainActivity","HouseListActivity onCreate");
@@ -79,6 +81,22 @@ public class HouseListActivity extends BaseActivity implements View.OnClickListe
     }
 
     @Override
+    public void onRestart(){
+        Log.i("mainActivity","onRestart ");
+        queryHouses();
+        super.onRestart();
+    }
+    @Override
+    public void onResume(){
+        Log.i("mainActivity","onResume ");
+        super.onResume();
+    }
+    /*@Override
+    protected void onDestroy(){
+        super.onDestroy();
+        Log.d("mainActivity","remove Activity "+getClass().getSimpleName());
+    }*/
+    @Override
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
         super.onCreateContextMenu(menu, v, menuInfo);
         menu.add(0, DELETE_ID, 0, "删除");
@@ -92,7 +110,6 @@ public class HouseListActivity extends BaseActivity implements View.OnClickListe
                 Log.i("mainActivity","delete Id: "+houseList.get((int) info.id).getId());
                 showDialog(info.id);
                 return true;
-
             default:
                 return super.onContextItemSelected(item);
         }
@@ -101,6 +118,7 @@ public class HouseListActivity extends BaseActivity implements View.OnClickListe
     public void onClick(View v){
         switch (v.getId()) {
             case R.id.create_house:
+                m_lastSelection = 0xffff;
                 Intent intent = new Intent(HouseListActivity.this,HouseDetailActivity.class);
                 Log.i("mainActivity","HouseListActivity onCreate");
                 startActivity(intent);
@@ -124,6 +142,8 @@ public class HouseListActivity extends BaseActivity implements View.OnClickListe
             public void onClick(DialogInterface dialog, int which){
                 Log.i("mainActivity","delete Id: "+houseList.get((int) par).getId());
                 deleteHouseFromDB(houseList.get((int) par).getId());
+                if (((int) par - 1)>=0)m_lastSelection = (int) par - 1;
+                else m_lastSelection = 0 ;
                 queryHouses();
                 //Toast.makeText(HouseListActivity.this, "positive: " + which, Toast.LENGTH_SHORT).show();
             }
@@ -154,7 +174,8 @@ public class HouseListActivity extends BaseActivity implements View.OnClickListe
                 dataList.add(house.getTimeStamp()+":"+house.getDistrictName()+ " " + house.getDescribe());
             }
             adapter.notifyDataSetChanged();
-            listView.setSelection(0);
+            if(m_lastSelection >= dataList.size()) m_lastSelection = dataList.size()-1;
+            listView.setSelection(m_lastSelection);
         }else{
             Intent intent = new Intent(HouseListActivity.this,HouseDetailActivity.class);
             Log.i("mainActivity","HouseListActivity onCreate");

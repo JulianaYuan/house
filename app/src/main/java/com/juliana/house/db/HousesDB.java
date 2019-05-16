@@ -4,9 +4,12 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Environment;
+import android.util.Log;
 
 import com.juliana.house.model.House;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,7 +17,7 @@ public class HousesDB {
     /**
      * database name
      */
-    public static final String DB_NAME = "houses";
+    public static final String DB_NAME = "houses.db";
     /**
      * database version
      */
@@ -175,5 +178,11 @@ public class HousesDB {
     public int getDBTableHouseCount(){
         Cursor cursor = db.query("House",null,null,null,null,null,null);
         return cursor.getCount();
+    }
+    /**
+     * close DB
+     */
+    public void closeHouseDB(){
+        db.close();
     }
 }

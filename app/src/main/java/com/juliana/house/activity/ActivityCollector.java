@@ -3,6 +3,7 @@ package com.juliana.house.activity;
 import android.app.Activity;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -62,6 +63,7 @@ public class ActivityCollector {
     }
     public static void removeActivity(Activity activity){
         activities.remove(activity);
+        Log.d("mainActivity","removeActivity activities.size() = "+activities.size());
     }
 
     /**
@@ -77,5 +79,24 @@ public class ActivityCollector {
             }
         }
         activities.clear();
+    }
+    /*
+    *
+    * */
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
+    public static int getActivitiesCount(){
+        int cnt = 0;
+        if (activities != null && activities.size() > 0){
+            Set<Map.Entry<Class<?>, Activity>> sets = activities.entrySet();
+            for (Map.Entry<Class<?>, Activity> s : sets) {
+                if (s.getValue().isFinishing() || s.getValue().isDestroyed()) {
+
+                } else {
+                    cnt++;
+                }
+            }
+        }
+        Log.d("mainActivity","getActivitiesCount = "+cnt);
+        return cnt;
     }
 }
